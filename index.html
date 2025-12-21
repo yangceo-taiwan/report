@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="author" content="易丞地政">
-    <title>2026 靈魂人格解析 | 易丞地政製作</title>
+    <meta name="author" content="Yang C.E.O.">
+    <title>2026 靈魂人格解析 | Yang C.E.O.</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
     
@@ -98,7 +98,7 @@
         
         <div class="text-center mb-4 opacity-70 no-copy">
             <p class="text-xs tracking-widest text-nexus-accent">POWERED BY</p>
-            <p class="text-sm font-bold text-white">易丞地政製作</p>
+            <p class="text-sm font-bold text-white font-display tracking-wide">Yang C.E.O.</p>
         </div>
 
         <div id="phase-input" class="glass-card rounded-2xl p-6 md:p-8 fade-in">
@@ -246,7 +246,7 @@
                     <button class="w-full bg-white text-black font-bold py-3 rounded-lg hover:bg-gray-200 transition text-sm">
                         長按截圖 2026 命盤
                     </button>
-                    <p class="text-[10px] text-gray-500 mt-2 no-copy">Copyright © 2026 易丞地政製作</p>
+                    <p class="text-[10px] text-gray-500 mt-2 no-copy">Copyright © 2026 Yang C.E.O.</p>
                 </div>
             </div>
         </div>
@@ -291,7 +291,7 @@
         let currentStep = 0;
         let scores = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0, fire: 0, earth: 0, air: 0, water: 0 };
 
-        // Quiz Data (維持原樣)
+        // Quiz Data
         const quizData = [
             { id: 1, category: "Energy", question: "參加充滿陌生人的社交聚會，你的狀態通常是？", options: [{ text: "自帶聚光燈：抬頭挺胸，準備好認識新朋友。", score: { E: 2, fire: 2 } }, { text: "隱形斗篷：默默滑入角落，先觀察環境。", score: { I: 2, earth: 1, water: 1 } }] },
             { id: 2, category: "Reaction", question: "朋友臨時約你：「現在出來喝一杯？」，你的反應？", options: [{ text: "說走就走：好啊！剛好沒事，感覺很有趣。", score: { P: 2, fire: 1, air: 1 } }, { text: "猶豫再三：呃...我要先確認明天的行程。", score: { J: 2, earth: 2 } }] },
@@ -388,7 +388,7 @@
             document.getElementById('phase-loading').classList.add('hidden');
             document.getElementById('phase-result').classList.remove('hidden');
             
-            // 2026 Specific Logic: Always show 2026
+            // 2026 Specific Logic
             const now = new Date();
             document.getElementById('resDate').innerText = `2026.${now.getMonth()+1}.${now.getDate()}`;
             document.getElementById('resZodiac').innerText = zodiac;
@@ -402,7 +402,7 @@
             document.getElementById('resDescMain').innerHTML = data.descMain;
             document.getElementById('resDescVibe').innerHTML = data.descVibe;
             document.getElementById('resAdvice').innerText = data.advice;
-            document.getElementById('resLucky').innerText = data.lucky; // 新增幸運關鍵字
+            document.getElementById('resLucky').innerText = data.lucky; 
         }
 
         function generateDeepContent(mbti, vibeElement, zodiac, blood, name) {
@@ -474,9 +474,8 @@
                 keywords: `#${mbti} #2026運勢 #${vibeElement}`,
                 descMain: `<b>親愛的 ${name}，</b><br><br>${core.trait}<br><br>結合了 <b>${zodiac}</b> 的${zTrait}，以及 <b>${blood}型</b> 的潛意識影響，造就了獨特的你。<br><br><span class="text-purple-300">陰影與挑戰：</span>${core.shadow}`,
                 descVibe: `你的社交防禦機制偏向 <b>[ ${vibe.keyword} ]</b>。<br><br>${vibe.desc}`,
-                // 2026 專屬預言
                 advice: `【2026 宇宙訊息】<br>這一年對 ${mbti} 而言，是將過去幾年的累積「變現」的時刻。宇宙能量正在從混亂轉向新的秩序。<br><br>你的關鍵任務是：別讓「過度思考」殺死了你的直覺。你的獨特性正是 2026 最稀缺的貨幣。相信那個一閃而過的念頭，立刻執行它。`,
-                lucky: luckyMap[vibeElement] // 根據元素給予幸運詞
+                lucky: luckyMap[vibeElement] 
             };
         }
     </script>
