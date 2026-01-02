@@ -3,30 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>宏國/易丞地政 - 專業文件生成系統</title>
+    <title>宏國/易丞地政 - 法規說明文件生成器</title>
     
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700;900&family=Inter:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- html2canvas (For Image Download) -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet">
 
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        'hg-blue': '#005f86',
-                        'hg-red': '#ce2626',
-                        'hg-dark': '#2c2c2c',
+                        'brand-dark': '#2c3e50', // Navy Blue
+                        'brand-gold': '#d4af37', // Gold
+                        'brand-bg': '#f3f4f6',
                     },
                     fontFamily: {
-                        sans: ['"Inter"', '"Noto Sans TC"', 'sans-serif'],
+                        sans: ['"Noto Sans TC"', 'sans-serif'],
                         serif: ['"Noto Serif TC"', 'serif'],
-                    },
-                    boxShadow: {
-                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
                     }
                 }
             }
@@ -34,278 +36,352 @@
     </script>
 
     <style>
-        /* === UI 背景風格 (Glassmorphism) === */
-        body {
-            background-color: #e0e5ec;
-            background-image: 
-                radial-gradient(at 0% 0%, hsla(213, 50%, 85%, 1) 0, transparent 50%), 
-                radial-gradient(at 100% 100%, hsla(220, 39%, 80%, 1) 0, transparent 50%);
-            background-attachment: fixed;
-            font-family: 'Inter', 'Noto Sans TC', sans-serif;
-            overflow: hidden; 
-            color: #333;
-        }
-
-        /* 磨砂玻璃面板 */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.65);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
-            border-right: 1px solid rgba(255, 255, 255, 0.5);
-        }
-
-        /* A4 紙張 (預覽區) */
+        /* A4 Paper Simulation */
         .a4-paper {
             width: 210mm;
             min-height: 297mm;
             background: white;
             margin: 0 auto;
             position: relative;
-            box-shadow: 0 30px 60px -12px rgba(50, 50, 93, 0.25), 0 18px 36px -18px rgba(0, 0, 0, 0.3);
-            display: flex;
-            flex-direction: column;
-            padding: 15mm 20mm;
-            box-sizing: border-box;
-            transition: transform 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
-        /* === 列印模式 (Print Mode) === */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 450px; 
+            margin: 0 auto;
+            height: 280px;
+        }
+
+        /* --- PRINT STYLES --- */
         @media print {
-            body * { visibility: hidden; }
-            body { background: white !important; overflow: visible !important; }
-            #document-root, #document-root * { visibility: visible; }
-            
-            #document-root {
-                position: fixed;
-                left: 0;
-                top: 0;
-                width: 100%;
-                margin: 0 !important;
-                padding: 15mm !important;
-                box-shadow: none !important;
-                z-index: 9999;
+            @page {
+                size: A4;
+                margin: 0; 
             }
-            header, aside { display: none !important; }
-            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            body {
+                background: white;
+                height: auto;
+                overflow: visible;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            /* Hide UI Elements */
+            header, .editor-panel, ::-webkit-scrollbar, .no-print {
+                display: none !important;
+            }
+
+            /* Main Layout Fixes */
+            main {
+                display: block !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+
+            #preview-section {
+                padding: 0 !important;
+                background: white !important;
+                overflow: visible !important;
+                display: block !important;
+                height: auto !important;
+            }
+
+            /* A4 Container Fixes */
+            .a4-paper {
+                box-shadow: none !important;
+                margin: 0 !important;
+                width: 100% !important;
+                min-height: auto !important;
+            }
         }
     </style>
 </head>
-<body class="h-screen flex flex-col">
+<body class="bg-gray-100 text-gray-800 font-sans h-screen flex flex-col overflow-hidden">
 
-    <header class="glass-panel h-16 flex items-center justify-between px-6 shrink-0 z-50 relative shadow-sm">
-        <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-white font-bold shadow-md">N</div>
-            <h1 class="font-semibold text-gray-700">Nexus Document <span class="text-xs text-gray-500 font-normal ml-2">Enterprise Edition</span></h1>
+    <!-- Header / Toolbar -->
+    <!-- Added z-50 to ensure it's on top of everything -->
+    <header class="bg-brand-dark text-white p-4 shadow-md flex justify-between items-center z-50 shrink-0 relative">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 border-2 border-brand-gold rounded-full flex items-center justify-center text-brand-gold font-serif font-bold text-xl">地</div>
+            <div>
+                <h1 class="text-lg font-bold tracking-wide">宏國 / 易丞地政</h1>
+                <p class="text-[10px] text-gray-400 tracking-wider uppercase">Professional Document Generator</p>
+            </div>
         </div>
-        <div class="flex gap-3">
-            <button onclick="window.print()" class="px-4 py-2 bg-gray-800 hover:bg-black text-white rounded-lg text-sm font-medium transition shadow-lg flex items-center gap-2">
-                🖨️ 列印 / 存PDF
+        <div class="flex space-x-3">
+            <button onclick="downloadImage()" class="cursor-pointer flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded text-sm transition focus:outline-none focus:ring-2 focus:ring-gray-400">
+                <span>📷 下載圖片</span>
             </button>
-            <button onclick="downloadJPG()" class="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-lg text-sm font-medium transition shadow-sm flex items-center gap-2">
-                🖼️ 存 JPG
+            
+            <!-- PRINT BUTTON: Enhanced for clickability and visibility -->
+            <button onclick="handlePrint()" class="cursor-pointer flex items-center space-x-2 bg-brand-gold hover:bg-yellow-500 text-brand-dark font-bold px-5 py-2 rounded shadow-md transition transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-yellow-300">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                <span>🖨️ 列印 / 另存 PDF</span>
             </button>
         </div>
     </header>
 
-    <div class="flex-1 flex overflow-hidden">
+    <!-- Main Workspace -->
+    <main class="flex-1 flex overflow-hidden relative z-0">
         
-        <aside class="w-full md:w-[350px] glass-panel flex flex-col z-40 h-full relative border-r border-white/40">
-            <div class="p-5 border-b border-gray-200/50 font-bold text-gray-600 flex items-center gap-2">
-                <span>⚙️</span> 參數設定
+        <!-- Left Panel: Editor -->
+        <section class="w-full md:w-1/3 lg:w-1/4 bg-white border-r border-gray-200 flex flex-col shadow-xl z-10 editor-panel">
+            <div class="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                <h2 class="font-bold text-brand-dark flex items-center">
+                    <span class="mr-2 text-brand-gold">●</span> 編輯內容
+                </h2>
             </div>
             
-            <div class="flex-1 overflow-y-auto p-6 space-y-6">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 mb-1">主標題</label>
-                        <input type="text" id="input-title" oninput="updateContent()" class="w-full p-2 bg-white/50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-400 outline-none text-sm" value="不動產買賣契約注意事項">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 mb-1">副標題 / 日期</label>
-                        <input type="text" id="input-subtitle" oninput="updateContent()" class="w-full p-2 bg-white/50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-400 outline-none text-sm" value="中華民國 115 年 1 月 2 日 | 案件編號：HG-20260102">
-                    </div>
+            <div class="flex-1 overflow-y-auto p-5 space-y-6">
+                <!-- Inputs -->
+                <div class="space-y-3">
+                    <label class="block text-sm font-semibold text-gray-700">文件標題 (Title)</label>
+                    <input type="text" id="input-title" class="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-brand-gold outline-none transition" value="平均地權條例修法重點解析">
+                    
+                    <label class="block text-sm font-semibold text-gray-700">副標題 / 日期</label>
+                    <input type="text" id="input-subtitle" class="w-full p-2 border border-gray-300 rounded focus:ring-1 focus:ring-brand-gold outline-none transition" value="中華民國 115 年 1 月 2 日 | 政策影響分析">
                 </div>
 
-                <div class="h-px bg-gray-300 w-full"></div>
+                <hr class="border-gray-200">
 
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-1">內文內容</label>
-                    <textarea id="input-content" oninput="updateContent()" rows="12" class="w-full p-3 bg-white/50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-400 outline-none leading-relaxed text-sm" placeholder="請輸入內容...">茲說明本次不動產交易之重要事項如下：
+                <div class="space-y-3">
+                    <label class="block text-sm font-semibold text-gray-700">內文說明 (Content)</label>
+                    <textarea id="input-content" rows="12" class="w-full p-3 border border-gray-300 rounded focus:ring-1 focus:ring-brand-gold outline-none leading-relaxed resize-none" placeholder="請輸入說明文字...">本次修法主要針對預售屋換約轉售限制、私法人購屋許可制等五大重點進行規範。
 
-一、產權調查：
-本所已完成土地及建物登記簿謄本之調閱，確認產權清楚，無限制登記情事。
+針對私法人購屋部分，原則上將改採許可制，並限制取得後五年內不得移轉，此舉預期將大幅降低豪宅市場的投資需求。
 
-二、稅費負擔：
-1. 土地增值稅由賣方負擔。
-2. 契稅、印花稅、登記規費由買方負擔。
-3. 地政士代辦費用依照雙方協議辦理。
+對於一般自住客群而言，市場供給量可能會因為投資客退場而短期波動，但長期有助於房價回歸理性基本面。
 
-三、特別約定：
-本案預計於簽約後 45 日內完成完稅及過戶手續，請雙方備妥相關證件。
-
-易丞地政與宏國地政團隊 敬上</textarea>
+宏國與易丞地政團隊建議，目前持有預售屋之客戶，應重新檢視資產配置，避免違規轉售受罰。</textarea>
                 </div>
-                
-                <div class="p-4 bg-white/40 rounded-xl border border-white/60">
-                     <div class="flex justify-between items-center mb-3">
-                        <span class="text-xs font-bold text-gray-500">📊 圖表數據與項目</span>
-                        <input type="checkbox" id="show-chart" onchange="toggleChart()" checked class="accent-gray-700">
-                    </div>
-                    
-                    <div class="flex items-center gap-2 mb-2">
-                        <div class="w-3 h-3 rounded-full bg-hg-blue shrink-0"></div> <input type="text" id="chart-label-1" value="自住需求" placeholder="項目名稱" oninput="updateChartData()" class="w-2/3 p-1.5 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-hg-blue outline-none">
-                        <input type="number" id="chart-val-1" value="70" oninput="updateChartData()" class="w-1/3 p-1.5 text-center border border-gray-200 rounded text-xs focus:ring-1 focus:ring-hg-blue outline-none">
+
+                <hr class="border-gray-200">
+
+                <!-- Chart Settings -->
+                <div class="space-y-4 bg-gray-50 p-3 rounded border border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <label class="block text-sm font-bold text-brand-dark">數據圖表設定</label>
+                        <!-- TOGGLE SWITCH -->
+                        <div class="flex items-center">
+                            <input type="checkbox" id="show-chart" class="cursor-pointer mr-2 w-4 h-4 text-brand-gold rounded border-gray-300 focus:ring-brand-gold" checked>
+                            <label for="show-chart" class="text-xs text-gray-600 cursor-pointer select-none">顯示圖表</label>
+                        </div>
                     </div>
 
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full bg-hg-red shrink-0"></div> <input type="text" id="chart-label-2" value="投資需求" placeholder="項目名稱" oninput="updateChartData()" class="w-2/3 p-1.5 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-hg-red outline-none">
-                        <input type="number" id="chart-val-2" value="30" oninput="updateChartData()" class="w-1/3 p-1.5 text-center border border-gray-200 rounded text-xs focus:ring-1 focus:ring-hg-red outline-none">
+                    <div id="chart-inputs" class="space-y-3 transition-opacity duration-300">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-xs text-gray-500 block mb-1">項目 A</label>
+                                <input type="text" id="chart-label-1" class="w-full p-1 border rounded text-sm" value="自住需求">
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-500 block mb-1">數值 A</label>
+                                <input type="number" id="chart-data-1" class="w-full p-1 border rounded text-sm" value="70">
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-500 block mb-1">項目 B</label>
+                                <input type="text" id="chart-label-2" class="w-full p-1 border rounded text-sm" value="投資需求">
+                            </div>
+                            <div>
+                                <label class="text-xs text-gray-500 block mb-1">數值 B</label>
+                                <input type="number" id="chart-data-2" class="w-full p-1 border rounded text-sm" value="30">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">圖表說明文字</label>
+                            <input type="text" id="chart-caption" class="w-full p-1 border rounded text-sm" value="修法後市場預估結構">
+                        </div>
                     </div>
-                    
-                    <p class="text-[10px] text-gray-400 mt-2 text-right">* 數值建議總和為 100</p>
                 </div>
             </div>
-        </aside>
+        </section>
 
-        <main class="flex-1 overflow-auto p-8 flex justify-center relative">
+        <!-- Right Panel: Preview Area -->
+        <section id="preview-section" class="flex-1 bg-gray-200 overflow-y-auto p-8 flex justify-center items-start z-0">
             
-            <div id="document-root" class="a4-paper">
+            <!-- THE DOCUMENT (A4) -->
+            <div id="document-preview" class="a4-paper flex flex-col p-0 text-gray-900">
                 
-                <div class="flex items-end justify-between pb-4 border-b-[5px] border-gray-600 mb-8">
-                    <div class="flex items-center gap-5">
-                        <img src="易丞logo-01.jpg" alt="易丞地政" class="h-[60px] object-contain" onerror="this.style.display='none'">
-                        <div class="h-[40px] w-px bg-gray-400"></div>
-                        <img src="宏國地政封面.jpg" alt="宏國地政" class="h-[50px] object-contain" onerror="this.style.display='none'">
-                    </div>
-
-                    <div class="text-right">
-                        <h1 class="text-3xl font-bold text-hg-dark tracking-tight font-serif mb-1">宏國地政 易丞地政</h1>
-                        <h2 class="text-sm text-gray-600 font-bold tracking-[0.2em]">專業地政團隊</h2>
-                        <p class="text-[10px] text-gray-400 tracking-[0.15em] uppercase mt-0.5">Professional Land Agent</p>
-                    </div>
-                </div>
-
-                <div class="text-center mb-10">
-                    <h1 id="preview-title" class="text-[26pt] font-serif font-bold text-gray-900 mb-3 tracking-wide">不動產買賣契約注意事項</h1>
-                    <div class="flex justify-center items-center gap-2 text-sm text-gray-600 font-sans">
-                        <span id="preview-subtitle">中華民國 115 年 1 月 2 日 | 案件編號：HG-20260102</span>
+                <!-- 1. Header (Text Based, No Logo Images) -->
+                <div class="bg-white px-12 pt-12 pb-6 flex flex-col border-b-2 border-brand-gold">
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <h1 class="text-3xl font-serif font-bold text-brand-dark tracking-wide">宏國地政 <span class="text-brand-gold px-1">/</span> 易丞地政</h1>
+                            <div class="text-sm font-bold text-brand-gold uppercase tracking-[0.2em] mt-2">Land Administration & Consulting</div>
+                        </div>
+                        <div class="text-right">
+                             <div class="text-xs text-gray-500 font-medium bg-gray-100 px-3 py-1 rounded-full">專業 ‧ 誠信 ‧ 永續</div>
+                             <div class="mt-1 text-xs text-gray-400">不動產法規顧問報告書</div>
+                        </div>
                     </div>
                 </div>
 
-                <div id="preview-content" class="text-justify leading-[2.2] text-gray-900 font-serif whitespace-pre-wrap text-[12pt] px-2 flex-1">
+                <!-- 2. Body -->
+                <div class="px-14 py-10 flex-1 flex flex-col">
+                    
+                    <!-- Title Block -->
+                    <div class="mb-10 text-center">
+                        <h2 id="preview-title" class="text-3xl font-bold text-gray-900 mb-4 leading-tight">平均地權條例修法重點解析</h2>
+                        <div class="inline-block border-b border-gray-300 pb-1">
+                            <p id="preview-subtitle" class="text-gray-500 font-serif italic">中华民國 115 年 1 月 2 日 | 政策影響分析</p>
+                        </div>
                     </div>
 
-                <div id="chart-container" class="mt-4 mb-8 px-10 flex flex-col items-center">
-                    <div class="w-full max-w-[300px] h-[220px] relative"> <canvas id="myChart"></canvas>
+                    <!-- Main Text Content -->
+                    <div id="preview-content" class="text-justify text-gray-800 leading-9 text-lg whitespace-pre-wrap font-serif">
+                        <!-- Content Injected Here -->
                     </div>
+
+                    <!-- Chart Section (Toggled via JS) -->
+                    <div id="preview-chart-section" class="mt-12 mb-6 break-inside-avoid">
+                        <div class="flex items-center mb-6">
+                            <div class="h-px bg-gray-200 flex-1"></div>
+                            <span class="px-4 text-sm text-brand-gold font-bold uppercase tracking-widest">數據佐證</span>
+                            <div class="h-px bg-gray-200 flex-1"></div>
+                        </div>
+                        
+                        <div class="w-full flex flex-col items-center bg-gray-50 p-6 rounded-lg border border-gray-100">
+                            <div class="chart-container">
+                                <canvas id="impactChart"></canvas>
+                            </div>
+                            <p id="preview-chart-caption" class="mt-4 text-sm text-gray-500 font-medium italic">修法後市場預估結構</p>
+                        </div>
+                    </div>
+
                 </div>
 
-                <div class="footer-section mt-auto border-t border-gray-300 pt-3 text-center">
-                    <p class="font-bold text-gray-800 text-sm mb-1">宏國地政 / 易丞地政士事務所</p>
-                    <p class="text-[9pt] text-gray-500 font-sans">
-                        地址：台南市安定區 (範例地址) | 電話：(06) 123-4567 | 統編：12345678
-                    </p>
+                <!-- 3. Footer -->
+                <div class="bg-brand-dark text-white px-12 py-6 mt-auto">
+                    <div class="flex justify-between items-center border-t border-gray-600 pt-4">
+                        <div class="text-xs opacity-80 font-light space-y-1">
+                            <p class="font-bold text-brand-gold">智慧財產權聲明</p>
+                            <p>本文件內容包含之文字、數據及分析，均為宏國地政與易丞地政所有。</p>
+                        </div>
+                        <div class="text-right text-[10px] opacity-50 uppercase tracking-widest">
+                             &copy; 2026 Hong Guo & Yi Cheng.
+                        </div>
+                    </div>
                 </div>
 
             </div>
-        </main>
-    </div>
+        </section>
+    </main>
+
+    <!-- Placeholder Comments -->
+    <!-- Chosen Palette: Navy Blue (#2c3e50) & Gold (#d4af37) -->
+    <!-- Application Structure: Editor (Left) + Preview (Right). Print Button uses window.print() and strict CSS @media print to hide editor. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS. -->
 
     <script>
-        let myChart;
-        
-        window.onload = function() {
-            initChart();
-            updateContent();
+        // --- Logic ---
+        const inputs = {
+            title: document.getElementById('input-title'),
+            subtitle: document.getElementById('input-subtitle'),
+            content: document.getElementById('input-content'),
+            chartLabel1: document.getElementById('chart-label-1'),
+            chartData1: document.getElementById('chart-data-1'),
+            chartLabel2: document.getElementById('chart-label-2'),
+            chartData2: document.getElementById('chart-data-2'),
+            chartCaption: document.getElementById('chart-caption'),
+            showChart: document.getElementById('show-chart') // Checkbox
         };
 
-        // 圖表初始化
-        function initChart() {
-            const ctx = document.getElementById('myChart').getContext('2d');
-            
-            // 初始值
-            const label1 = document.getElementById('chart-label-1').value;
-            const label2 = document.getElementById('chart-label-2').value;
-            const val1 = parseInt(document.getElementById('chart-val-1').value) || 0;
-            const val2 = parseInt(document.getElementById('chart-val-2').value) || 0;
+        const previews = {
+            title: document.getElementById('preview-title'),
+            subtitle: document.getElementById('preview-subtitle'),
+            content: document.getElementById('preview-content'),
+            chartCaption: document.getElementById('preview-chart-caption'),
+            chartSection: document.getElementById('preview-chart-section'),
+            chartInputs: document.getElementById('chart-inputs')
+        };
 
+        let myChart = null;
+
+        function initChart() {
+            const ctx = document.getElementById('impactChart').getContext('2d');
             myChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: [label1, label2], // 使用變數
+                    labels: [inputs.chartLabel1.value, inputs.chartLabel2.value],
                     datasets: [{
-                        data: [val1, val2],
-                        backgroundColor: ['#005f86', '#ce2626'], // 品牌藍、品牌紅
+                        data: [inputs.chartData1.value, inputs.chartData2.value],
+                        backgroundColor: ['#2c3e50', '#d4af37'],
                         borderWidth: 0
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { 
-                            display: true, // 開啟圖例
-                            position: 'bottom',
-                            labels: {
-                                font: {
-                                    family: "'Noto Serif TC', serif",
-                                    size: 12
-                                },
-                                usePointStyle: true, // 使用圓點圖例
-                                padding: 20
-                            }
-                        } 
-                    },
-                    cutout: '65%' // 甜甜圈厚度
+                    plugins: {
+                        legend: { position: 'bottom', labels: { padding: 20, font: { family: 'Noto Sans TC' } } }
+                    }
                 }
             });
         }
 
-        // 內容更新
-        function updateContent() {
-            document.getElementById('preview-title').textContent = document.getElementById('input-title').value;
-            document.getElementById('preview-subtitle').textContent = document.getElementById('input-subtitle').value;
-            document.getElementById('preview-content').textContent = document.getElementById('input-content').value;
+        function updatePreview() {
+            // Text Updates
+            previews.title.innerText = inputs.title.value;
+            previews.subtitle.innerText = inputs.subtitle.value;
+            previews.content.innerText = inputs.content.value;
+            previews.chartCaption.innerText = inputs.chartCaption.value;
+
+            // Chart Data Update
+            if (myChart) {
+                myChart.data.labels = [inputs.chartLabel1.value, inputs.chartLabel2.value];
+                myChart.data.datasets[0].data = [inputs.chartData1.value, inputs.chartData2.value];
+                myChart.update();
+            }
+
+            // Chart Visibility Toggle
+            if (inputs.showChart.checked) {
+                previews.chartSection.style.display = 'block';
+                previews.chartInputs.style.opacity = '1';
+                previews.chartInputs.style.pointerEvents = 'auto';
+            } else {
+                previews.chartSection.style.display = 'none';
+                previews.chartInputs.style.opacity = '0.3';
+                previews.chartInputs.style.pointerEvents = 'none';
+            }
         }
 
-        // 圖表數據與文字更新
-        function updateChartData() {
-            // 抓取文字
-            const label1 = document.getElementById('chart-label-1').value || '項目 1';
-            const label2 = document.getElementById('chart-label-2').value || '項目 2';
-            
-            // 抓取數值
-            const val1 = parseInt(document.getElementById('chart-val-1').value) || 0;
-            const val2 = parseInt(document.getElementById('chart-val-2').value) || 0;
-            
-            // 更新 Chart.js
-            myChart.data.labels = [label1, label2];
-            myChart.data.datasets[0].data = [val1, val2];
-            myChart.update();
+        // Attach listeners
+        Object.values(inputs).forEach(input => {
+            if(input.type === 'checkbox') {
+                input.addEventListener('change', updatePreview);
+            } else {
+                input.addEventListener('input', updatePreview);
+            }
+        });
+        
+        // Print Handler
+        function handlePrint() {
+            // Ensure focus is on the window so print dialog appears correctly
+            window.focus();
+            window.print();
         }
 
-        function toggleChart() {
-            const show = document.getElementById('show-chart').checked;
-            document.getElementById('chart-container').style.display = show ? 'flex' : 'none';
-        }
-
-        // JPG 下載
-        function downloadJPG() {
-            const element = document.getElementById('document-root');
-            const originalShadow = element.style.boxShadow;
-            element.style.boxShadow = 'none'; 
-            
+        // Image Download
+        function downloadImage() {
+            window.scrollTo(0,0);
+            const element = document.getElementById('document-preview');
             html2canvas(element, { scale: 2, useCORS: true }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = '地政文件.jpg';
+                link.download = '宏國易丞法規說明.jpg';
                 link.href = canvas.toDataURL('image/jpeg', 0.9);
                 link.click();
-                element.style.boxShadow = originalShadow;
-            }).catch(e => {
-                alert("圖片匯出受阻，請使用列印功能另存 PDF");
             });
         }
+
+        // Init
+        window.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            updatePreview();
+        });
     </script>
 </body>
 </html>
