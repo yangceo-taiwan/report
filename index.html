@@ -2,482 +2,324 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="author" content="Yang C.E.O.">
-    <title>2026 靈魂人格解析 | Yang C.E.O.</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宏國/易丞地政 - 專業文件生成器 (修正版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
-    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        nexus: { dark: '#0f0c29', purple: '#302b63', light: '#24243e', accent: '#a8c0ff' }
+                        'brand-dark': '#1a3c5e',
+                        'brand-gold': '#d4af37',
+                        'brand-gray': '#f8f9fa',
                     },
                     fontFamily: {
                         sans: ['"Noto Sans TC"', 'sans-serif'],
-                        display: ['"Space Grotesk"', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
+
     <style>
-        /* --- 基礎設定 --- */
-        body {
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            color: white;
-            min-height: 100vh;
-            -webkit-tap-highlight-color: transparent;
-            overflow-x: hidden;
-        }
-
-        .no-copy { user-select: none; -webkit-user-select: none; pointer-events: none; }
+        /* 確保整個應用程式佔滿螢幕且不會出現雙重捲軸 */
+        body { overflow: hidden; }
         
-        input, select, button {
-            user-select: text !important;
-            -webkit-user-select: text !important;
-            pointer-events: auto !important;
-            cursor: pointer;
+        /* 編輯區捲軸美化 */
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
+
+        /* A4 紙張標準設定 */
+        .a4-paper {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            margin: 0 auto;
             position: relative;
-            z-index: 50;
-        }
-        
-        input:focus, select:focus {
-            outline: 2px solid #a8c0ff;
-            background-color: rgba(0, 0, 0, 0.6);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            /* 關鍵修正：防止內容溢出導致跑版 */
+            overflow: hidden; 
         }
 
-        /* --- 玻璃擬態卡片 --- */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        /* 預覽區背景網格 */
+        .preview-bg {
+            background-color: #525659;
+            background-image: radial-gradient(#6c7073 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* 圖表容器 */
+        .chart-container {
             position: relative;
-            z-index: 10;
+            height: 250px;
+            width: 100%;
+            max-width: 450px;
+            margin: 0 auto;
         }
 
-        .option-btn:active { transform: scale(0.98); }
-        .fade-in { animation: fadeIn 0.6s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* --- Info Box --- */
-        .info-box {
-            background: rgba(0, 0, 0, 0.3);
-            border-left: 3px solid #a8c0ff;
-            padding: 10px;
-            margin-top: 8px;
-            font-size: 0.8rem;
-            color: #d1d5db;
-            line-height: 1.5;
+        /* 開關按鈕樣式 */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #d4af37;
         }
-        .highlight { color: #a8c0ff; font-weight: bold; }
-
-        /* --- Tab System Styles --- */
-        .tab-btn {
-            border-bottom: 2px solid transparent;
-            transition: all 0.3s ease;
-            opacity: 0.6;
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #d4af37;
         }
-        .tab-btn.active {
-            border-bottom: 2px solid #a8c0ff;
-            opacity: 1;
-            color: #fff;
-            font-weight: bold;
-        }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeIn 0.4s ease; }
     </style>
 </head>
-<body class="flex items-center justify-center p-4">
+<body class="bg-gray-100 text-gray-800 font-sans h-screen flex flex-col">
 
-    <div id="app" class="w-full max-w-md mx-auto relative">
-        
-        <div class="text-center mb-4 opacity-70 no-copy">
-            <p class="text-xs tracking-widest text-nexus-accent">POWERED BY</p>
-            <p class="text-sm font-bold text-white font-display tracking-wide">Yang C.E.O.</p>
+    <header class="bg-brand-dark text-white h-14 flex items-center justify-between px-4 shrink-0 shadow-md z-20">
+        <div class="flex items-center gap-3">
+            <div class="font-bold text-lg tracking-wide">宏國/易丞地政</div>
+            <span class="text-gray-400 text-xs border-l border-gray-600 pl-3">文件生成系統 v2.0</span>
         </div>
-
-        <div id="phase-input" class="glass-card rounded-2xl p-6 md:p-8 fade-in">
-            <div class="text-center mb-6 no-copy">
-                <h1 class="text-2xl md:text-3xl font-display font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-nexus-accent to-purple-400">SOUL MATRIX 2026</h1>
-                <p class="text-gray-400 text-xs md:text-sm">2026 年度流年 x MBTI 深度人格解析</p>
-            </div>
-            
-            <div class="space-y-5">
-                <div>
-                    <label class="block text-xs text-gray-400 mb-2 ml-1 no-copy">您的名字 / 暱稱</label>
-                    <input type="text" id="userName" class="w-full bg-black/40 border border-gray-500 rounded-lg p-3 text-white placeholder-gray-500 transition-colors" placeholder="請輸入姓名">
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-2 ml-1 no-copy">出生月份</label>
-                        <select id="birthMonth" class="w-full bg-black/40 border border-gray-500 rounded-lg p-3 text-white appearance-none">
-                            <option value="" class="text-gray-500">月份</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-400 mb-2 ml-1 no-copy">出生日期</label>
-                        <select id="birthDay" class="w-full bg-black/40 border border-gray-500 rounded-lg p-3 text-white appearance-none">
-                            <option value="" class="text-gray-500">日期</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs text-gray-400 mb-2 ml-1 no-copy">血型 (影響潛意識)</label>
-                    <div class="grid grid-cols-4 gap-2">
-                        <button type="button" onclick="selectBlood('A')" id="btn-A" class="blood-btn bg-black/40 border border-gray-500 rounded-lg py-3 text-sm font-medium transition hover:bg-white/10" data-type="A">A</button>
-                        <button type="button" onclick="selectBlood('B')" id="btn-B" class="blood-btn bg-black/40 border border-gray-500 rounded-lg py-3 text-sm font-medium transition hover:bg-white/10" data-type="B">B</button>
-                        <button type="button" onclick="selectBlood('O')" id="btn-O" class="blood-btn bg-black/40 border border-gray-500 rounded-lg py-3 text-sm font-medium transition hover:bg-white/10" data-type="O">O</button>
-                        <button type="button" onclick="selectBlood('AB')" id="btn-AB" class="blood-btn bg-black/40 border border-gray-500 rounded-lg py-3 text-sm font-medium transition hover:bg-white/10" data-type="AB">AB</button>
-                    </div>
-                </div>
-            </div>
-
-            <button onclick="startQuiz()" class="mt-8 w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-3 md:py-4 rounded-lg shadow-lg hover:shadow-xl hover:scale-[1.02] transition transform active:scale-95">
-                開始 2026 運勢解析
+        <div class="flex gap-2">
+            <button onclick="downloadImage()" class="px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-sm transition">
+                📷 存為圖片
+            </button>
+            <button onclick="downloadPDF()" class="px-3 py-1 bg-brand-gold hover:bg-yellow-600 text-white font-medium rounded text-sm transition shadow">
+                📄 存為 PDF
             </button>
         </div>
+    </header>
 
-        <div id="phase-quiz" class="hidden glass-card rounded-2xl p-6 fade-in min-h-[400px] flex flex-col">
-            <div class="w-full bg-gray-700 h-1 rounded-full mb-6">
-                <div id="progressBar" class="bg-nexus-accent h-1 rounded-full transition-all duration-300" style="width: 5%"></div>
+    <div class="flex-1 flex overflow-hidden">
+        
+        <aside class="w-full md:w-[380px] bg-white border-r border-gray-200 flex flex-col z-10 shadow-lg">
+            <div class="p-4 bg-gray-50 border-b font-bold text-brand-dark flex items-center gap-2">
+                <span>✏️</span> 編輯內容
             </div>
             
-            <div class="flex-grow flex flex-col justify-center">
-                <span id="qCategory" class="text-xs font-bold tracking-widest text-purple-300 mb-2 uppercase no-copy">Category</span>
-                <h2 id="qText" class="text-lg md:text-xl font-bold mb-6 leading-relaxed no-copy">題目載入中...</h2>
-                
+            <div class="flex-1 overflow-y-auto custom-scroll p-5 space-y-6">
                 <div class="space-y-3">
-                    <button id="optA" class="option-btn w-full text-left p-4 rounded-xl border border-white/10 bg-white/5 transition hover:bg-white/10 text-sm md:text-base">
-                        Option A
-                    </button>
-                    <button id="optB" class="option-btn w-full text-left p-4 rounded-xl border border-white/10 bg-white/5 transition hover:bg-white/10 text-sm md:text-base">
-                        Option B
-                    </button>
+                    <label class="block text-sm font-bold text-gray-700">文件標題</label>
+                    <input type="text" id="input-title" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-brand-gold outline-none" value="平均地權條例修法重點解析">
+                    
+                    <label class="block text-sm font-bold text-gray-700">副標題 / 日期</label>
+                    <input type="text" id="input-subtitle" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-brand-gold outline-none" value="中華民國 115 年 1 月 2 日 | 政策影響分析">
+                </div>
+
+                <hr>
+
+                <div class="space-y-2">
+                    <label class="block text-sm font-bold text-gray-700">主要內容</label>
+                    <textarea id="input-content" rows="10" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-brand-gold outline-none leading-relaxed text-sm" placeholder="輸入法規說明...">本次修法主要針對預售屋換約轉售限制、私法人購屋許可制等五大重點進行規範。
+
+針對私法人購屋部分，原則上將改採許可制，並限制取得後五年內不得移轉，此舉預期將大幅降低豪宅市場的投資需求。
+
+對於一般自住客群而言，市場供給量可能會因為投資客退場而短期波動，但長期有助於房價回歸理性基本面。宏國與易丞地政團隊建議，目前持有預售屋之客戶，應重新檢視資產配置，避免違規轉售受罰。</textarea>
+                </div>
+
+                <hr>
+
+                <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-sm font-bold text-brand-dark">📊 數據圖表</span>
+                        
+                        <div class="relative inline-block w-10 mr-2 align-middle select-none">
+                            <input type="checkbox" id="toggle-chart" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-brand-gold transition-all duration-300 z-10" checked>
+                            <label for="toggle-chart" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer checked:bg-brand-gold transition-all duration-300"></label>
+                        </div>
+                    </div>
+
+                    <div id="chart-settings" class="space-y-2 transition-opacity duration-200">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="chart-label-1" class="p-1 border rounded text-xs" value="自住需求">
+                            <input type="number" id="chart-data-1" class="p-1 border rounded text-xs" value="65">
+                            <input type="text" id="chart-label-2" class="p-1 border rounded text-xs" value="投資需求">
+                            <input type="number" id="chart-data-2" class="p-1 border rounded text-xs" value="35">
+                        </div>
+                        <input type="text" id="chart-caption" class="w-full p-1 border rounded text-xs mt-2" value="圖表 1：修法前後市場結構佔比預估">
+                    </div>
                 </div>
             </div>
+        </aside>
+
+        <main class="flex-1 preview-bg overflow-auto custom-scroll p-8 flex justify-center items-start">
             
-            <div class="text-center mt-6 text-gray-500 text-xs no-copy">
-                Question <span id="qIndex">1</span> / 10
-            </div>
-        </div>
-
-        <div id="phase-loading" class="hidden text-center py-20 fade-in">
-            <div class="inline-block w-14 h-14 border-4 border-white/10 border-t-nexus-accent rounded-full animate-spin mb-4"></div>
-            <h2 class="text-lg font-bold no-copy">正在下載 2026 星曆...</h2>
-            <p id="loadingText" class="text-xs text-gray-400 mt-2 no-copy">分析潛意識結構...</p>
-        </div>
-
-        <div id="phase-result" class="hidden fade-in">
-            <div class="glass-card rounded-2xl overflow-hidden border-t-4 border-nexus-accent flex flex-col max-h-[90vh]">
+            <div id="document-preview" class="a4-paper shrink-0">
                 
-                <div class="p-5 pb-2 text-center bg-white/5 shrink-0">
-                    <div class="inline-block px-3 py-1 rounded-full bg-white/10 text-[10px] text-nexus-accent mb-1 no-copy">
-                        <span id="resDate"></span> | <span id="resZodiac"></span> | <span id="resBlood"></span>
+                <div class="px-10 py-8 border-b-4 border-brand-gold flex justify-between items-center bg-white">
+                    <div class="flex items-center gap-6 h-20">
+                        <div class="h-full flex items-center">
+                            <img src="uploaded:易丞logo-01.jpg" alt="易丞Logo" class="max-h-full w-auto object-contain">
+                        </div>
+                        
+                        <div class="h-12 w-px bg-gray-300"></div>
+
+                        <div class="h-full flex items-center">
+                            <img src="uploaded:宏國地政封面.jpg" alt="宏國Logo" class="max-h-full w-auto object-contain opacity-90">
+                        </div>
                     </div>
+
+                    <div class="text-right hidden sm:block">
+                        <h2 class="text-brand-dark font-bold text-xl tracking-widest">宏國 / 易丞地政</h2>
+                        <p class="text-xs text-gray-500 mt-1 font-medium">PROFESSIONAL LAND ADMINISTRATION</p>
+                        <p class="text-xs text-brand-gold mt-0.5">專業．誠信．永續</p>
+                    </div>
+                </div>
+
+                <div class="px-12 py-10 flex-1 flex flex-col">
                     
-                    <div class="flex items-center justify-center space-x-4 mb-2">
-                        <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-yellow-500 blur-sm flex items-center justify-center relative animate-pulse">
-                            <div class="w-14 h-14 rounded-full bg-black flex items-center justify-center relative z-10">
-                                <span id="resMBTI" class="text-lg font-bold text-white font-display">INTJ</span>
+                    <div class="text-center mb-10">
+                        <h1 id="preview-title" class="text-3xl font-bold text-brand-dark mb-3">平均地權條例修法重點解析</h1>
+                        <div class="flex justify-center items-center gap-3">
+                            <span class="h-px w-8 bg-gray-300"></span>
+                            <p id="preview-subtitle" class="text-sm text-gray-500 font-medium tracking-wide">中華民國 115 年 1 月 2 日 | 政策影響分析</p>
+                            <span class="h-px w-8 bg-gray-300"></span>
+                        </div>
+                    </div>
+
+                    <div id="preview-content" class="text-justify text-gray-700 leading-loose text-lg whitespace-pre-wrap mb-8">
+                        </div>
+
+                    <div id="preview-chart-section" class="mt-auto mb-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
+                        <h3 class="text-brand-dark font-bold text-lg mb-4 border-l-4 border-brand-gold pl-3">數據佐證分析</h3>
+                        <div class="flex flex-col items-center">
+                            <div class="chart-container">
+                                <canvas id="impactChart"></canvas>
                             </div>
-                        </div>
-                        <div class="text-left">
-                            <h1 id="resArchetype" class="text-xl font-display font-bold text-white mb-0 leading-tight no-copy">幕後帝王</h1>
-                            <div id="resMBTIExplain" class="text-[10px] text-gray-400">外向(E)+實感(S)...</div>
-                        </div>
-                    </div>
-                    <p id="resKeywords" class="text-[10px] text-purple-300 font-bold tracking-wider no-copy">#關鍵字</p>
-                </div>
-
-                <div class="flex border-b border-white/10 bg-black/20 shrink-0">
-                    <button onclick="switchTab('core')" id="tab-core" class="tab-btn active flex-1 py-3 text-xs md:text-sm text-gray-400">🔮 靈魂本質</button>
-                    <button onclick="switchTab('vibe')" id="tab-vibe" class="tab-btn flex-1 py-3 text-xs md:text-sm text-gray-400">🎭 上升氣場</button>
-                    <button onclick="switchTab('advice')" id="tab-advice" class="tab-btn flex-1 py-3 text-xs md:text-sm text-gray-400">🌌 2026 預言</button>
-                </div>
-
-                <div class="p-5 overflow-y-auto custom-scrollbar flex-grow" style="min-height: 280px;">
-                    
-                    <div id="content-core" class="tab-content active space-y-4">
-                        <h3 class="font-bold text-white text-sm mb-2">⚡ 你的核心靈魂 (Core Self)</h3>
-                        <p id="resDescMain" class="text-sm text-gray-300 text-justify leading-relaxed">...</p>
-                        
-                        <div class="info-box">
-                            <p class="mb-2"><span class="highlight">🔍 MBTI 是什麼？</span><br>這是你的大腦作業系統。例如「INTJ」代表你用內向直覺思考，是天生的策略家。</p>
-                            <p><span class="highlight">☀️ 太陽星座 (Sun Sign)</span><br>代表你與生俱來的本質與人生目標。</p>
+                            <p id="preview-chart-caption" class="text-sm text-gray-500 mt-4 italic">圖表說明文字</p>
                         </div>
                     </div>
 
-                    <div id="content-vibe" class="tab-content space-y-4">
-                        <h3 class="font-bold text-white text-sm mb-2">🎭 你的社交面具 (Social Mask)</h3>
-                        <p id="resDescVibe" class="text-sm text-gray-300 text-justify leading-relaxed">...</p>
-                        
-                        <div class="info-box">
-                            <p><span class="highlight">🎭 上升氣場 (Rising Vibe)</span><br>
-                            如果太陽星座是靈魂，這就是你的「戰袍」。<br>
-                            即便你是熱情的火象星座，若測出「土元素氣場」，代表你在陌生人面前會顯得高冷、專業，這是你的防禦機制。</p>
-                        </div>
-                    </div>
-
-                    <div id="content-advice" class="tab-content space-y-4">
-                         <div class="bg-gradient-to-r from-purple-900/40 to-blue-900/40 p-4 rounded-lg border border-white/10">
-                            <h3 class="font-bold text-nexus-accent mb-2 text-sm">🔮 2026 流年預言</h3>
-                            <p id="resAdvice" class="italic text-sm text-gray-200 leading-relaxed">...</p>
-                        </div>
-                        
-                        <div class="mt-4 p-4 rounded-lg border border-dashed border-gray-600 bg-white/5 text-center">
-                            <h4 class="text-xs text-gray-400 mb-1">2026 幸運關鍵字</h4>
-                            <p id="resLucky" class="text-lg font-bold text-white tracking-widest">ACTION</p>
-                        </div>
-
-                        <div class="text-center mt-4">
-                            <div class="text-xs text-gray-500 mb-2">長按下方按鈕保存，明年驗證你的預言</div>
-                        </div>
-                    </div>
                 </div>
 
-                <div class="p-4 bg-black/40 text-center shrink-0">
-                    <button class="w-full bg-white text-black font-bold py-3 rounded-lg hover:bg-gray-200 transition text-sm">
-                        長按截圖 2026 命盤
-                    </button>
-                    <p class="text-[10px] text-gray-500 mt-2 no-copy">Copyright © 2026 Yang C.E.O.</p>
+                <div class="bg-brand-dark text-white text-center py-3 text-xs opacity-90 mt-auto">
+                    本文件內容之智慧財產權為宏國地政與易丞地政所有，未經授權不得任意轉載。
                 </div>
+
             </div>
-        </div>
+        </main>
     </div>
 
     <script>
-        // --- Tab Logic ---
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active', 'text-white', 'font-bold');
-                btn.classList.add('text-gray-400');
-            });
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            const activeBtn = document.getElementById('tab-' + tabName);
-            const activeContent = document.getElementById('content-' + tabName);
-            activeBtn.classList.add('active', 'text-white', 'font-bold');
-            activeBtn.classList.remove('text-gray-400');
-            activeContent.classList.add('active');
-        }
+        // 變數
+        const inputs = {
+            title: document.getElementById('input-title'),
+            subtitle: document.getElementById('input-subtitle'),
+            content: document.getElementById('input-content'),
+            chartToggle: document.getElementById('toggle-chart'),
+            chartData: [
+                document.getElementById('chart-label-1'),
+                document.getElementById('chart-data-1'),
+                document.getElementById('chart-label-2'),
+                document.getElementById('chart-data-2')
+            ],
+            caption: document.getElementById('chart-caption')
+        };
 
-        // --- IP Protection ---
-        document.addEventListener('contextmenu', event => event.preventDefault());
+        const previews = {
+            title: document.getElementById('preview-title'),
+            subtitle: document.getElementById('preview-subtitle'),
+            content: document.getElementById('preview-content'),
+            chartSection: document.getElementById('preview-chart-section'),
+            chartCaption: document.getElementById('preview-chart-caption'),
+            settings: document.getElementById('chart-settings')
+        };
 
-        // --- Init ---
-        const monthSel = document.getElementById('birthMonth');
-        const daySel = document.getElementById('birthDay');
-        for(let i=1; i<=12; i++) {
-            let opt = document.createElement('option');
-            opt.value = i; opt.innerText = i + '月';
-            opt.className = "text-black"; monthSel.appendChild(opt);
-        }
-        for(let i=1; i<=31; i++) {
-            let opt = document.createElement('option');
-            opt.value = i; opt.innerText = i + '日';
-            opt.className = "text-black"; daySel.appendChild(opt);
-        }
+        let chartInstance = null;
 
-        // State
-        let userData = { name: '', birthMonth: '', birthDay: '', bloodType: '' };
-        let currentStep = 0;
-        let scores = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0, fire: 0, earth: 0, air: 0, water: 0 };
-
-        // Quiz Data
-        const quizData = [
-            { id: 1, category: "Energy", question: "參加充滿陌生人的社交聚會，你的狀態通常是？", options: [{ text: "自帶聚光燈：抬頭挺胸，準備好認識新朋友。", score: { E: 2, fire: 2 } }, { text: "隱形斗篷：默默滑入角落，先觀察環境。", score: { I: 2, earth: 1, water: 1 } }] },
-            { id: 2, category: "Reaction", question: "朋友臨時約你：「現在出來喝一杯？」，你的反應？", options: [{ text: "說走就走：好啊！剛好沒事，感覺很有趣。", score: { P: 2, fire: 1, air: 1 } }, { text: "猶豫再三：呃...我要先確認明天的行程。", score: { J: 2, earth: 2 } }] },
-            { id: 3, category: "Role", question: "在團體中，大家通常公認你擔當什麼角色？", options: [{ text: "氣氛製造者：負責講笑話、控場。", score: { E: 2, F: 1, air: 2 } }, { text: "軍師或傾聽者：話不多，但開口是重點。", score: { I: 2, T: 1, water: 1 } }] },
-            { id: 4, category: "Conflict", question: "不得不與討厭的人共事，你會？", options: [{ text: "戴上假面具：表面客氣，維持體面。", score: { E: 1, F: 1, air: 2 } }, { text: "公事公辦臉：面無表情，只談工作。", score: { I: 1, T: 2, earth: 1 } }] },
-            { id: 5, category: "Style", question: "你今天的穿搭風格通常取決於？", options: [{ text: "心情與舒適：我想穿什麼就穿什麼。", score: { N: 1, P: 1, fire: 1 } }, { text: "場合與形象：要呈現出專業或合適的樣子。", score: { S: 1, J: 1, earth: 1 } }] },
-            { id: 6, category: "Art", question: "看到一張抽象畫，你的第一個念頭？", options: [{ text: "具體聯想：這是天空？還是大海？", score: { S: 2, earth: 1 } }, { text: "情緒感知：感覺好憂鬱... 畫家當時很孤獨？", score: { N: 2, water: 2 } }] },
-            { id: 7, category: "Chat", question: "你更喜歡跟哪一種人聊天？", options: [{ text: "腳踏實地型：聊美食、聊八卦、聊生活。", score: { S: 2, earth: 1 } }, { text: "腦洞大開型：聊宇宙、聊未來科技。", score: { N: 2, air: 1 } }] },
-            { id: 8, category: "Decide", question: "買東西時，最後讓你刷卡的關鍵？", options: [{ text: "CP 值與規格：功能最強、價格合理。", score: { T: 2, S: 1, earth: 2 } }, { text: "品牌與感覺：喜歡理念，或拿在手上的質感。", score: { F: 2, N: 1, fire: 1 } }] },
-            { id: 9, category: "Plan", question: "下個月去日本旅遊，還有30天，你的狀態？", options: [{ text: "Excel 表格控：行程交通都排好了。", score: { J: 2, earth: 2 } }, { text: "佛系隨緣派：只訂了機票，剩下的再看。", score: { P: 2, fire: 1 } }] },
-            { id: 10, category: "Life", question: "人生對你來說，比較像是一場？", options: [{ text: "建築工程：依照藍圖蓋出宏偉高樓。", score: { J: 1, S: 1, earth: 2 } }, { text: "即興爵士樂：隨當下的感覺演奏。", score: { P: 1, N: 1, water: 1 } }] }
-        ];
-
-        function selectBlood(type) {
-            userData.bloodType = type;
-            document.querySelectorAll('.blood-btn').forEach(btn => {
-                btn.classList.remove('bg-nexus-accent', 'text-black', 'font-bold', 'border-transparent');
-                btn.classList.add('bg-black/40', 'border-gray-500');
-            });
-            document.getElementById('btn-' + type).classList.remove('bg-black/40', 'border-gray-500');
-            document.getElementById('btn-' + type).classList.add('bg-nexus-accent', 'text-black', 'font-bold', 'border-transparent');
-        }
-
-        function startQuiz() {
-            userData.name = document.getElementById('userName').value;
-            userData.birthMonth = document.getElementById('birthMonth').value;
-            userData.birthDay = document.getElementById('birthDay').value;
-
-            if(!userData.name || !userData.birthMonth || !userData.birthDay || !userData.bloodType) {
-                alert("請完整填寫資料"); return;
-            }
-            document.getElementById('phase-input').classList.add('hidden');
-            document.getElementById('phase-quiz').classList.remove('hidden');
-            renderQuestion();
-        }
-
-        function renderQuestion() {
-            if(currentStep >= quizData.length) {
-                showLoading(); return;
-            }
-            const q = quizData[currentStep];
-            const container = document.getElementById('phase-quiz');
-            container.classList.remove('fade-in');
-            void container.offsetWidth; container.classList.add('fade-in');
-
-            document.getElementById('qCategory').innerText = q.category;
-            document.getElementById('qText').innerText = q.question;
-            document.getElementById('qIndex').innerText = currentStep + 1;
-            document.getElementById('progressBar').style.width = ((currentStep / quizData.length) * 100) + '%';
-
-            const btnA = document.getElementById('optA');
-            const btnB = document.getElementById('optB');
-            btnA.innerText = q.options[0].text;
-            btnA.onclick = () => handleAnswer(q.options[0].score);
-            btnB.innerText = q.options[1].text;
-            btnB.onclick = () => handleAnswer(q.options[1].score);
-        }
-
-        function handleAnswer(delta) {
-            for(let key in delta) scores[key] += delta[key];
-            currentStep++;
-            renderQuestion();
-        }
-
-        function showLoading() {
-            document.getElementById('phase-quiz').classList.add('hidden');
-            document.getElementById('phase-loading').classList.remove('hidden');
-            
-            const loadingTexts = ["正在下載 2026 星曆...", "校正 2026 流年參數...", "分析 MBTI 成長路徑...", "生成年度預言..."];
-            let i = 0;
-            setInterval(() => {
-                if(i < loadingTexts.length) {
-                    document.getElementById('loadingText').innerText = loadingTexts[i];
-                    i++;
+        // 初始化圖表
+        function initChart() {
+            const ctx = document.getElementById('impactChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [inputs.chartData[0].value, inputs.chartData[2].value],
+                    datasets: [{
+                        data: [inputs.chartData[1].value, inputs.chartData[3].value],
+                        backgroundColor: ['#1a3c5e', '#d4af37'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { padding: 20, font: { family: "'Noto Sans TC'" } } }
+                    }
                 }
-            }, 600);
-            setTimeout(() => calculateResult(), 2500);
+            });
         }
 
-        function calculateResult() {
-            // MBTI
-            const mbti = (scores.E > scores.I ? 'E':'I') + (scores.N > scores.S ? 'N':'S') + (scores.F > scores.T ? 'F':'T') + (scores.J > scores.P ? 'J':'P');
-            // Zodiac
-            const m = parseInt(userData.birthMonth), d = parseInt(userData.birthDay);
-            const days = [20,19,21,20,21,21,23,23,23,23,22,22];
-            const signs = ["摩羯座","水瓶座","雙魚座","牡羊座","金牛座","雙子座","巨蟹座","獅子座","處女座","天秤座","天蠍座","射手座","摩羯座"];
-            const zodiac = m - (d < days[m-1]?1:0) <= 0 ? signs[11] : signs[m-(d<days[m-1]?1:0)];
-            // Vibe
-            const vibes = { Fire: scores.fire, Earth: scores.earth, Air: scores.air, Water: scores.water };
-            const vibeElement = Object.keys(vibes).reduce((a, b) => vibes[a] >= vibes[b] ? a : b);
+        // 更新畫面
+        function update() {
+            // 文字更新
+            previews.title.innerText = inputs.title.value;
+            previews.subtitle.innerText = inputs.subtitle.value;
+            previews.content.innerText = inputs.content.value;
+            previews.chartCaption.innerText = inputs.caption.value;
 
-            const data = generateDeepContent(mbti, vibeElement, zodiac, userData.bloodType, userData.name);
-            
-            document.getElementById('phase-loading').classList.add('hidden');
-            document.getElementById('phase-result').classList.remove('hidden');
-            
-            // 2026 Specific Logic
-            const now = new Date();
-            document.getElementById('resDate').innerText = `2026.${now.getMonth()+1}.${now.getDate()}`;
-            document.getElementById('resZodiac').innerText = zodiac;
-            document.getElementById('resBlood').innerText = userData.bloodType + '型';
-            
-            document.getElementById('resMBTI').innerText = mbti;
-            document.getElementById('resMBTIExplain').innerText = data.mbtiBreakdown;
-            document.getElementById('resArchetype').innerText = data.title;
-            document.getElementById('resKeywords').innerText = data.keywords;
-            
-            document.getElementById('resDescMain').innerHTML = data.descMain;
-            document.getElementById('resDescVibe').innerHTML = data.descVibe;
-            document.getElementById('resAdvice').innerText = data.advice;
-            document.getElementById('resLucky').innerText = data.lucky; 
-        }
-
-        function generateDeepContent(mbti, vibeElement, zodiac, blood, name) {
-            
-            // MBTI DB
-            const mbtiDB = {
-                'INTJ': { title: '幕後帝王', trait: '你擁有一種「看穿本質」的X光眼。在別人還在討論現狀時，你已經在腦中模擬了未來五年的結局。', shadow: '對平庸的不耐煩常讓你感到孤獨。' },
-                'INTP': { title: '邏輯鬼才', trait: '你的大腦像是一台永不停歇的超級電腦，對於「為什麼」的執著大於「是什麼」。', shadow: '常陷入分析癱瘓，忘了生活需要溫度。' },
-                'ENTJ': { title: '戰場指揮官', trait: '天生的領袖，效率是你的信仰。你不是在等待機會，而是在創造機會。', shadow: '有時過於強勢，會不小心碾碎別人的玻璃心。' },
-                'ENTP': { title: '惡魔辯護人', trait: '思想的特技演員，喜歡在混亂中尋找秩序。爭論對你來說不是吵架，而是激盪真理。', shadow: '三分鐘熱度是你最大的敵人。' },
-                'INFJ': { title: '通靈導師', trait: '你是世界上最稀有的存在，擁有極強的共情力與直覺。常覺得自己不屬於這個時代。', shadow: '為照顧別人的情緒，常把自己消耗殆盡。' },
-                'INFP': { title: '流浪詩人', trait: '內心擁有一座秘密花園，只有極少數人能拿到鑰匙。對真誠有著近乎潔癖的堅持。', shadow: '現實世界的粗糙常讓你感到受傷。' },
-                'ENFJ': { title: '社群教主', trait: '你有一種讓陌生人願意對你掏心掏肺的魔力。你的快樂來自於看見周圍的人成長。', shadow: '太過在意別人的評價，常忘了自己。' },
-                'ENFP': { title: '快樂瘋子', trait: '你的靈魂是由彩虹與閃電組成的。對世界充滿了孩子般的好奇心，討厭一切重複的事物。', shadow: '情緒來得快去得也快，易陷焦慮。' },
-                'ISTJ': { title: '皇家守衛', trait: '你是混亂世界中的定海神針。承諾對你來說重如泰山，只要答應的事，絕對使命必達。', shadow: '對改變的抗拒，有時會讓你錯失良機。' },
-                'ISFJ': { title: '萬能管家', trait: '你記得所有人的喜好與地雷，是團隊中最溫暖的膠水。默默付出不求回報。', shadow: '過度犧牲自己，需要學會說「不」。' },
-                'ESTJ': { title: '鐵血總裁', trait: '效率、傳統、秩序。你是社會運轉的基石，能迅速將混亂的局面理出頭緒。', shadow: '有時過於看重結果，忽略了人情世故。' },
-                'ESFJ': { title: '社交女王', trait: '哪裡有你，哪裡就有歡笑與凝聚力。你對他人的情緒變化極度敏感。', shadow: '害怕被排擠，有時委屈自己配合大家。' },
-                'ISTP': { title: '孤狼刺客', trait: '話少手巧，善於解決實際問題。在危機時刻，大家慌成一團，只有你冷靜找出生路。', shadow: '對情感表達感到棘手，常被誤認為冷血。' },
-                'ISFP': { title: '浪流藝術家', trait: '用感官體驗世界，活在當下。你的審美與品味是天生的，不喜歡被任何標籤定義。', shadow: '在壓力下容易選擇逃避。' },
-                'ESTP': { title: '失控火箭', trait: '活在極限的邊緣，追求刺激與實質的回報。你是天生的推銷員與冒險家。', shadow: '容易因衝動做出讓自己後悔的決定。' },
-                'ESFP': { title: '天生巨星', trait: '只要有你在，生活就不會無聊。你把每一天都當作最後一天來活，極具感染力。', shadow: '對嚴肅的話題容易感到不耐煩。' }
-            };
-
-            const mbtiDict = { 'E': '外向', 'I': '內向', 'S': '實感', 'N': '直覺', 'T': '理性', 'F': '感性', 'J': '判斷', 'P': '感知' };
-            const breakdown = mbti.split('').map(char => `${mbtiDict[char]}(${char})`).join(' + ');
-
-            // Vibe DB
-            const vibeDB = {
-                'Fire': { 
-                    keyword: '火元素 - 熾熱 × 侵略性', 
-                    desc: '你的氣場如同一團燃燒的火，給人<b>「充滿活力、自信」</b>的感覺。<br>類似<b>牡羊、獅子或射手</b>。在 2026 年，這種氣場將幫助你在競爭激烈的環境中脫穎而出。但記得，過度的熱情有時會灼傷他人，學會偶爾「降溫」是你明年的課題。' 
-                },
-                'Earth': { 
-                    keyword: '土元素 - 穩重 × 距離感', 
-                    desc: '你的氣場如同一座山，給人<b>「靠得住」但又有點「高冷」</b>的印象。<br>類似<b>摩羯、金牛或處女</b>。2026 是動盪的一年，而你這種「不動如山」的特質將成為大家依賴的對象。你的專業感會吸引貴人，但請適時展露微笑，別讓機會因為距離感而溜走。' 
-                },
-                'Air': { 
-                    keyword: '風元素 - 靈動 × 捉摸不定', 
-                    desc: '你的氣場像風一樣自由，給人<b>「聰明、好聊，但很難真正抓得住」</b>的感覺。<br>類似<b>雙子、天秤或水瓶</b>。2026 是資訊爆炸的一年，這正是你的主場。你的適應力與社交手腕將為你帶來意想不到的財富。唯一要注意的是，別讓承諾變成空頭支票。' 
-                },
-                'Water': { 
-                    keyword: '水元素 - 溫柔 × 療癒力', 
-                    desc: '你的氣場帶有水的流動性，給人<b>「無害、溫柔且神祕」</b>的感覺。<br>類似<b>天蠍、雙魚或巨蟹</b>。在 2026 年，人們的心靈普遍焦慮，而你將成為身邊人的療癒者。你的直覺在明年會異常準確，請相信那股「莫名的預感」，它會帶你避開危險。' 
+            // 圖表開關邏輯
+            if (inputs.chartToggle.checked) {
+                previews.chartSection.style.display = 'block';
+                previews.settings.style.opacity = '1';
+                previews.settings.style.pointerEvents = 'auto';
+                
+                // 更新圖表數據
+                if (chartInstance) {
+                    chartInstance.data.labels = [inputs.chartData[0].value, inputs.chartData[2].value];
+                    chartInstance.data.datasets[0].data = [inputs.chartData[1].value, inputs.chartData[3].value];
+                    chartInstance.update();
                 }
-            };
-
-            const zodiacTraits = {
-                "牡羊座": "行動力", "金牛座": "品味", "雙子座": "靈活",
-                "巨蟹座": "溫情", "獅子座": "榮耀", "處女座": "細節",
-                "天秤座": "美感", "天蠍座": "直覺", "射手座": "自由",
-                "摩羯座": "野心", "水瓶座": "改革", "雙魚座": "夢想"
-            };
-
-            const luckyMap = {
-                'Fire': '突破 (BREAKTHROUGH)',
-                'Earth': '建構 (BUILD)',
-                'Air': '連結 (CONNECT)',
-                'Water': '直覺 (INTUITION)'
-            };
-
-            const core = mbtiDB[mbti];
-            const vibe = vibeDB[vibeElement];
-            const zTrait = zodiacTraits[zodiac];
-
-            return {
-                title: core.title,
-                mbtiBreakdown: breakdown,
-                keywords: `#${mbti} #2026運勢 #${vibeElement}`,
-                descMain: `<b>親愛的 ${name}，</b><br><br>${core.trait}<br><br>結合了 <b>${zodiac}</b> 的${zTrait}，以及 <b>${blood}型</b> 的潛意識影響，造就了獨特的你。<br><br><span class="text-purple-300">陰影與挑戰：</span>${core.shadow}`,
-                descVibe: `你的社交防禦機制偏向 <b>[ ${vibe.keyword} ]</b>。<br><br>${vibe.desc}`,
-                advice: `【2026 宇宙訊息】<br>這一年對 ${mbti} 而言，是將過去幾年的累積「變現」的時刻。宇宙能量正在從混亂轉向新的秩序。<br><br>你的關鍵任務是：別讓「過度思考」殺死了你的直覺。你的獨特性正是 2026 最稀缺的貨幣。相信那個一閃而過的念頭，立刻執行它。`,
-                lucky: luckyMap[vibeElement] 
-            };
+            } else {
+                previews.chartSection.style.display = 'none';
+                previews.settings.style.opacity = '0.4';
+                previews.settings.style.pointerEvents = 'none';
+            }
         }
+
+        // 綁定事件
+        document.querySelectorAll('input, textarea').forEach(el => el.addEventListener('input', update));
+        inputs.chartToggle.addEventListener('change', update);
+
+        // 下載功能
+        function downloadPDF() {
+            const el = document.getElementById('document-preview');
+            const opt = {
+                margin: 0,
+                filename: '宏國易丞文件.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            // 暫時鎖定高度避免跑版
+            const oldHeight = el.style.height;
+            el.style.height = '297mm';
+            html2pdf().set(opt).from(el).save().then(() => el.style.height = oldHeight);
+        }
+
+        function downloadImage() {
+            const el = document.getElementById('document-preview');
+            const oldHeight = el.style.height;
+            el.style.height = '297mm';
+            
+            html2canvas(el, { scale: 2, useCORS: true }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = '宏國易丞文件.jpg';
+                link.href = canvas.toDataURL('image/jpeg');
+                link.click();
+                el.style.height = oldHeight;
+            });
+        }
+
+        // 啟動
+        window.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            update();
+        });
     </script>
 </body>
 </html>
