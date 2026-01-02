@@ -3,25 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>宏國/易丞地政 - 專業文件生成器 (終極版)</title>
+    <title>宏國/易丞地政 - 專業文件生成系統</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700;900&family=Inter:wght@300;400;500;600&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        'brand-dark': '#1a3c5e',
-                        'brand-gold': '#c49a6c',
-                        'brand-gray': '#f4f4f5',
+                        'hg-blue': '#005f86',
+                        'hg-red': '#ce2626',
+                        'hg-dark': '#2c2c2c',
                     },
                     fontFamily: {
-                        sans: ['"Noto Sans TC"', 'sans-serif'],
+                        sans: ['"Inter"', '"Noto Sans TC"', 'sans-serif'],
                         serif: ['"Noto Serif TC"', 'serif'],
+                    },
+                    boxShadow: {
+                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
                     }
                 }
             }
@@ -29,376 +34,278 @@
     </script>
 
     <style>
-        body { overflow: hidden; background-color: #2d3748; }
-        
-        /* 編輯區滾動條 */
-        .custom-scroll::-webkit-scrollbar { width: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: #edf2f7; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
+        /* === UI 背景風格 (Glassmorphism) === */
+        body {
+            background-color: #e0e5ec;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(213, 50%, 85%, 1) 0, transparent 50%), 
+                radial-gradient(at 100% 100%, hsla(220, 39%, 80%, 1) 0, transparent 50%);
+            background-attachment: fixed;
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            overflow: hidden; 
+            color: #333;
+        }
 
-        /* A4 紙張設定 */
+        /* 磨砂玻璃面板 */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+            border-right: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* A4 紙張 (預覽區) */
         .a4-paper {
             width: 210mm;
-            height: 297mm; /* 強制固定 A4 高度 */
+            min-height: 297mm;
             background: white;
-            margin: auto;
+            margin: 0 auto;
             position: relative;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            box-shadow: 0 30px 60px -12px rgba(50, 50, 93, 0.25), 0 18px 36px -18px rgba(0, 0, 0, 0.3);
             display: flex;
             flex-direction: column;
-            overflow: hidden; /* 防止內容溢出 */
-            transition: all 0.3s ease;
+            padding: 15mm 20mm;
+            box-sizing: border-box;
+            transition: transform 0.3s ease;
         }
 
-        /* 預覽背景網格 */
-        .preview-area {
-            background-image: 
-                linear-gradient(45deg, #3a4149 25%, transparent 25%), 
-                linear-gradient(-45deg, #3a4149 25%, transparent 25%), 
-                linear-gradient(45deg, transparent 75%, #3a4149 75%), 
-                linear-gradient(-45deg, transparent 75%, #3a4149 75%);
-            background-size: 20px 20px;
-            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-        }
-
-        /* 開關樣式 */
-        .toggle-checkbox:checked {
-            right: 0;
-            border-color: #c49a6c;
-        }
-        .toggle-checkbox:checked + .toggle-label {
-            background-color: #c49a6c;
-        }
-        
-        /* 列印與匯出時隱藏非必要元素 */
+        /* === 列印模式 (Print Mode) === */
         @media print {
             body * { visibility: hidden; }
-            #document-preview, #document-preview * { visibility: visible; }
-            #document-preview { position: absolute; left: 0; top: 0; margin: 0; box-shadow: none; }
+            body { background: white !important; overflow: visible !important; }
+            #document-root, #document-root * { visibility: visible; }
+            
+            #document-root {
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0 !important;
+                padding: 15mm !important;
+                box-shadow: none !important;
+                z-index: 9999;
+            }
+            header, aside { display: none !important; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
     </style>
 </head>
-<body class="h-screen flex flex-col text-gray-800">
+<body class="h-screen flex flex-col">
 
-    <header class="bg-brand-dark text-white h-14 flex items-center justify-between px-6 shrink-0 shadow-lg z-30">
-        <div class="flex items-center gap-4">
-            <div class="w-8 h-8 bg-brand-gold rounded flex items-center justify-center font-serif font-bold text-brand-dark">H</div>
-            <h1 class="font-medium tracking-wider text-sm sm:text-base">文件生成系統 <span class="opacity-50 mx-2">|</span> 宏國地政 / 易丞地政</h1>
+    <header class="glass-panel h-16 flex items-center justify-between px-6 shrink-0 z-50 relative shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-white font-bold shadow-md">N</div>
+            <h1 class="font-semibold text-gray-700">Nexus Document <span class="text-xs text-gray-500 font-normal ml-2">Enterprise Edition</span></h1>
         </div>
         <div class="flex gap-3">
-            <button onclick="downloadImage()" class="flex items-center gap-2 px-4 py-1.5 bg-white/10 hover:bg-white/20 rounded text-sm transition border border-white/10">
-                <span>📷 JPG</span>
+            <button onclick="window.print()" class="px-4 py-2 bg-gray-800 hover:bg-black text-white rounded-lg text-sm font-medium transition shadow-lg flex items-center gap-2">
+                🖨️ 列印 / 存PDF
             </button>
-            <button onclick="downloadPDF()" class="flex items-center gap-2 px-4 py-1.5 bg-brand-gold hover:bg-[#b08d55] text-white font-medium rounded text-sm transition shadow-md">
-                <span>📄 PDF</span>
+            <button onclick="downloadJPG()" class="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-lg text-sm font-medium transition shadow-sm flex items-center gap-2">
+                🖼️ 存 JPG
             </button>
         </div>
     </header>
 
     <div class="flex-1 flex overflow-hidden">
         
-        <aside class="w-full md:w-[400px] bg-white border-r border-gray-200 flex flex-col z-20 shadow-xl">
-            <div class="p-4 bg-gray-50 border-b flex items-center gap-2 font-bold text-gray-700">
-                <span>⚙️</span> 編輯與設定
+        <aside class="w-full md:w-[350px] glass-panel flex flex-col z-40 h-full relative border-r border-white/40">
+            <div class="p-5 border-b border-gray-200/50 font-bold text-gray-600 flex items-center gap-2">
+                <span>⚙️</span> 參數設定
             </div>
             
-            <div class="flex-1 overflow-y-auto custom-scroll p-6 space-y-8">
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-1">主標題</label>
+                        <input type="text" id="input-title" oninput="updateContent()" class="w-full p-2 bg-white/50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-400 outline-none text-sm" value="不動產買賣契約注意事項">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-1">副標題 / 日期</label>
+                        <input type="text" id="input-subtitle" oninput="updateContent()" class="w-full p-2 bg-white/50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-400 outline-none text-sm" value="中華民國 115 年 1 月 2 日 | 案件編號：HG-20260102">
+                    </div>
+                </div>
+
+                <div class="h-px bg-gray-300 w-full"></div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-1">內文內容</label>
+                    <textarea id="input-content" oninput="updateContent()" rows="12" class="w-full p-3 bg-white/50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-400 outline-none leading-relaxed text-sm" placeholder="請輸入內容...">茲說明本次不動產交易之重要事項如下：
+
+一、產權調查：
+本所已完成土地及建物登記簿謄本之調閱，確認產權清楚，無限制登記情事。
+
+二、稅費負擔：
+1. 土地增值稅由賣方負擔。
+2. 契稅、印花稅、登記規費由買方負擔。
+3. 地政士代辦費用依照雙方協議辦理。
+
+三、特別約定：
+本案預計於簽約後 45 日內完成完稅及過戶手續，請雙方備妥相關證件。
+
+易丞地政與宏國地政團隊 敬上</textarea>
+                </div>
                 
-                <div class="space-y-4">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Logo 設定</h3>
+                <div class="p-4 bg-white/40 rounded-xl border border-white/60">
+                     <div class="flex justify-between items-center mb-3">
+                        <span class="text-xs font-bold text-gray-500">📊 圖表數據與項目</span>
+                        <input type="checkbox" id="show-chart" onchange="toggleChart()" checked class="accent-gray-700">
+                    </div>
                     
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="relative group">
-                            <label class="block text-xs font-bold text-gray-600 mb-1">左側 Logo (易丞)</label>
-                            <label class="cursor-pointer flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-gray-300 rounded-lg hover:bg-gray-50 transition">
-                                <span class="text-xs text-gray-400">點擊上傳</span>
-                                <input type="file" id="upload-logo-left" accept="image/*" class="hidden" onchange="previewImage(this, 'logo-left-img')">
-                            </label>
-                        </div>
-
-                        <div class="relative">
-                            <label class="block text-xs font-bold text-gray-600 mb-1">右側 Logo (宏國)</label>
-                            <label class="cursor-pointer flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-gray-300 rounded-lg hover:bg-gray-50 transition">
-                                <span class="text-xs text-gray-400">點擊上傳</span>
-                                <input type="file" id="upload-logo-right" accept="image/*" class="hidden" onchange="previewImage(this, 'logo-right-img')">
-                            </label>
-                        </div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-3 h-3 rounded-full bg-hg-blue shrink-0"></div> <input type="text" id="chart-label-1" value="自住需求" placeholder="項目名稱" oninput="updateChartData()" class="w-2/3 p-1.5 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-hg-blue outline-none">
+                        <input type="number" id="chart-val-1" value="70" oninput="updateChartData()" class="w-1/3 p-1.5 text-center border border-gray-200 rounded text-xs focus:ring-1 focus:ring-hg-blue outline-none">
                     </div>
+
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-hg-red shrink-0"></div> <input type="text" id="chart-label-2" value="投資需求" placeholder="項目名稱" oninput="updateChartData()" class="w-2/3 p-1.5 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-hg-red outline-none">
+                        <input type="number" id="chart-val-2" value="30" oninput="updateChartData()" class="w-1/3 p-1.5 text-center border border-gray-200 rounded text-xs focus:ring-1 focus:ring-hg-red outline-none">
+                    </div>
+                    
+                    <p class="text-[10px] text-gray-400 mt-2 text-right">* 數值建議總和為 100</p>
                 </div>
-
-                <hr class="border-gray-100">
-
-                <div class="space-y-4">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">文案內容</h3>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">文件標題</label>
-                        <input type="text" id="input-title" class="w-full p-2 bg-gray-50 border border-gray-200 rounded focus:border-brand-gold focus:ring-1 focus:ring-brand-gold outline-none transition" value="平均地權條例修法重點解析">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">副標題 / 日期</label>
-                        <input type="text" id="input-subtitle" class="w-full p-2 bg-gray-50 border border-gray-200 rounded focus:border-brand-gold focus:ring-1 focus:ring-brand-gold outline-none transition" value="中華民國 115 年 1 月 2 日 | 政策影響分析">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">內文 (支援換行)</label>
-                        <textarea id="input-content" rows="12" class="w-full p-3 bg-gray-50 border border-gray-200 rounded focus:border-brand-gold focus:ring-1 focus:ring-brand-gold outline-none transition text-sm leading-relaxed" placeholder="請輸入內容...">本次修法主要針對預售屋換約轉售限制、私法人購屋許可制等五大重點進行規範。
-
-針對私法人購屋部分，原則上將改採許可制，並限制取得後五年內不得移轉，此舉預期將大幅降低豪宅市場的投資需求。
-
-對於一般自住客群而言，市場供給量可能會因為投資客退場而短期波動，但長期有助於房價回歸理性基本面。宏國與易丞地政團隊建議，目前持有預售屋之客戶，應重新檢視資產配置，避免違規轉售受罰。</textarea>
-                    </div>
-                </div>
-
-                <hr class="border-gray-100">
-
-                <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                    <div class="flex justify-between items-center mb-4">
-                        <span class="text-sm font-bold text-brand-dark flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" /><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" /></svg>
-                            顯示數據圖表
-                        </span>
-                        
-                        <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                            <input type="checkbox" id="toggle-chart" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer checked:right-0 checked:border-brand-gold transition-all duration-300 z-10" checked>
-                            <label for="toggle-chart" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer checked:bg-brand-gold transition-all duration-300"></label>
-                        </div>
-                    </div>
-
-                    <div id="chart-controls" class="space-y-3 transition-all duration-300">
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="text" id="chart-label-1" class="p-2 border rounded text-xs" value="自住需求">
-                            <input type="number" id="chart-data-1" class="p-2 border rounded text-xs" value="65">
-                            <input type="text" id="chart-label-2" class="p-2 border rounded text-xs" value="投資需求">
-                            <input type="number" id="chart-data-2" class="p-2 border rounded text-xs" value="35">
-                        </div>
-                        <input type="text" id="chart-caption" class="w-full p-2 border rounded text-xs" value="圖表 1：修法前後市場結構預估佔比">
-                    </div>
-                </div>
-
             </div>
         </aside>
 
-        <main class="flex-1 preview-area overflow-auto flex justify-center py-8 px-4">
+        <main class="flex-1 overflow-auto p-8 flex justify-center relative">
             
-            <div id="document-preview" class="a4-paper shrink-0 text-brand-dark">
+            <div id="document-root" class="a4-paper">
                 
-                <header class="px-12 py-10 flex justify-between items-end border-b-[3px] border-brand-gold bg-white">
-                    <div class="flex items-center h-16 gap-6">
-                        <img id="logo-left-img" src="" alt="左側Logo" class="h-full w-auto object-contain hidden">
-                        <div id="logo-left-placeholder" class="h-full w-32 bg-gray-100 rounded border border-dashed border-gray-300 flex items-center justify-center text-xs text-gray-400">
-                            Logo 1 (請上傳)
-                        </div>
-
-                        <div class="h-10 w-px bg-gray-300 mx-2"></div>
-
-                        <img id="logo-right-img" src="" alt="右側Logo" class="h-full w-auto object-contain hidden">
-                        <div id="logo-right-placeholder" class="h-full w-32 bg-gray-100 rounded border border-dashed border-gray-300 flex items-center justify-center text-xs text-gray-400">
-                            Logo 2 (請上傳)
-                        </div>
+                <div class="flex items-end justify-between pb-4 border-b-[5px] border-gray-600 mb-8">
+                    <div class="flex items-center gap-5">
+                        <img src="易丞logo-01.jpg" alt="易丞地政" class="h-[60px] object-contain" onerror="this.style.display='none'">
+                        <div class="h-[40px] w-px bg-gray-400"></div>
+                        <img src="宏國地政封面.jpg" alt="宏國地政" class="h-[50px] object-contain" onerror="this.style.display='none'">
                     </div>
 
                     <div class="text-right">
-                        <h2 class="font-serif font-bold text-xl tracking-widest text-brand-dark">宏國 / 易丞地政</h2>
-                        <div class="text-[10px] tracking-[0.2em] text-gray-500 uppercase mt-1">Professional Land Administration</div>
+                        <h1 class="text-3xl font-bold text-hg-dark tracking-tight font-serif mb-1">宏國地政 易丞地政</h1>
+                        <h2 class="text-sm text-gray-600 font-bold tracking-[0.2em]">專業地政團隊</h2>
+                        <p class="text-[10px] text-gray-400 tracking-[0.15em] uppercase mt-0.5">Professional Land Agent</p>
                     </div>
-                </header>
+                </div>
 
-                <article class="flex-1 px-14 py-12 flex flex-col">
-                    
-                    <div class="text-center mb-10">
-                        <h1 id="preview-title" class="text-4xl font-serif font-bold text-brand-dark mb-4">平均地權條例修法重點解析</h1>
-                        <div class="inline-block border-t border-b border-brand-gold/30 py-2 px-6">
-                            <p id="preview-subtitle" class="text-sm text-gray-500 tracking-wide font-medium">中華民國 115 年 1 月 2 日 | 政策影響分析</p>
-                        </div>
+                <div class="text-center mb-10">
+                    <h1 id="preview-title" class="text-[26pt] font-serif font-bold text-gray-900 mb-3 tracking-wide">不動產買賣契約注意事項</h1>
+                    <div class="flex justify-center items-center gap-2 text-sm text-gray-600 font-sans">
+                        <span id="preview-subtitle">中華民國 115 年 1 月 2 日 | 案件編號：HG-20260102</span>
                     </div>
+                </div>
 
-                    <div id="preview-content-container" class="flex-1 transition-all duration-500 ease-in-out">
-                         <div id="preview-content" class="text-justify text-gray-700 text-base leading-relaxed whitespace-pre-wrap font-sans">
-                            </div>
+                <div id="preview-content" class="text-justify leading-[2.2] text-gray-900 font-serif whitespace-pre-wrap text-[12pt] px-2 flex-1">
                     </div>
 
-                    <div id="preview-chart-section" class="mt-8 mb-4 bg-gray-50 p-6 rounded-xl border border-gray-100 shadow-sm">
-                        <div class="flex flex-col items-center justify-center">
-                            <h3 class="text-brand-gold font-bold text-sm mb-4 uppercase tracking-widest border-b border-brand-gold/20 pb-1">Data Analysis</h3>
-                            <div class="relative h-56 w-full max-w-sm">
-                                <canvas id="impactChart"></canvas>
-                            </div>
-                            <p id="preview-chart-caption" class="text-xs text-gray-500 mt-3 italic font-serif">圖表 1：數據分析說明</p>
-                        </div>
+                <div id="chart-container" class="mt-4 mb-8 px-10 flex flex-col items-center">
+                    <div class="w-full max-w-[300px] h-[220px] relative"> <canvas id="myChart"></canvas>
                     </div>
+                </div>
 
-                </article>
-
-                <footer class="bg-brand-dark text-white text-center py-4 text-xs opacity-90 mt-auto">
-                    <p class="mb-1 font-light tracking-wider">宏國地政 ‧ 易丞地政士事務所 ‧ 聯合製作</p>
-                    <p class="text-[10px] opacity-50 font-sans">Copyright © All Rights Reserved. 未經授權請勿轉載。</p>
-                </footer>
+                <div class="footer-section mt-auto border-t border-gray-300 pt-3 text-center">
+                    <p class="font-bold text-gray-800 text-sm mb-1">宏國地政 / 易丞地政士事務所</p>
+                    <p class="text-[9pt] text-gray-500 font-sans">
+                        地址：台南市安定區 (範例地址) | 電話：(06) 123-4567 | 統編：12345678
+                    </p>
+                </div>
 
             </div>
         </main>
     </div>
 
     <script>
-        // ==========================
-        // 1. Logo 上傳處理 (解決圖片不顯示)
-        // ==========================
-        function previewImage(input, imgId) {
-            const file = input.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.getElementById(imgId);
-                    const placeholder = document.getElementById(imgId.replace('-img', '-placeholder'));
-                    
-                    // 顯示圖片，隱藏佔位符
-                    img.src = e.target.result;
-                    img.classList.remove('hidden');
-                    if (placeholder) placeholder.classList.add('hidden');
-                }
-                reader.readAsDataURL(file);
-            }
-        }
-
-        // ==========================
-        // 2. 狀態管理
-        // ==========================
-        const state = {
-            title: document.getElementById('input-title'),
-            subtitle: document.getElementById('input-subtitle'),
-            content: document.getElementById('input-content'),
-            
-            chartToggle: document.getElementById('toggle-chart'),
-            chartLabels: [document.getElementById('chart-label-1'), document.getElementById('chart-label-2')],
-            chartData: [document.getElementById('chart-data-1'), document.getElementById('chart-data-2')],
-            chartCaption: document.getElementById('chart-caption'),
-            
-            // 預覽元素
-            pTitle: document.getElementById('preview-title'),
-            pSubtitle: document.getElementById('preview-subtitle'),
-            pContent: document.getElementById('preview-content'),
-            pChartSection: document.getElementById('preview-chart-section'),
-            pChartCaption: document.getElementById('preview-chart-caption'),
-            pControls: document.getElementById('chart-controls'),
+        let myChart;
+        
+        window.onload = function() {
+            initChart();
+            updateContent();
         };
 
-        let myChart = null;
-
-        // ==========================
-        // 3. 圖表初始化
-        // ==========================
+        // 圖表初始化
         function initChart() {
-            const ctx = document.getElementById('impactChart').getContext('2d');
-            Chart.defaults.font.family = '"Noto Sans TC", sans-serif';
+            const ctx = document.getElementById('myChart').getContext('2d');
             
+            // 初始值
+            const label1 = document.getElementById('chart-label-1').value;
+            const label2 = document.getElementById('chart-label-2').value;
+            const val1 = parseInt(document.getElementById('chart-val-1').value) || 0;
+            const val2 = parseInt(document.getElementById('chart-val-2').value) || 0;
+
             myChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: [state.chartLabels[0].value, state.chartLabels[1].value],
+                    labels: [label1, label2], // 使用變數
                     datasets: [{
-                        data: [state.chartData[0].value, state.chartData[1].value],
-                        backgroundColor: ['#1a3c5e', '#c49a6c'],
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
+                        data: [val1, val2],
+                        backgroundColor: ['#005f86', '#ce2626'], // 品牌藍、品牌紅
+                        borderWidth: 0
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { padding: 15, usePointStyle: true, boxWidth: 8 } }
+                    plugins: { 
+                        legend: { 
+                            display: true, // 開啟圖例
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    family: "'Noto Serif TC', serif",
+                                    size: 12
+                                },
+                                usePointStyle: true, // 使用圓點圖例
+                                padding: 20
+                            }
+                        } 
                     },
-                    layout: { padding: 10 }
+                    cutout: '65%' // 甜甜圈厚度
                 }
             });
         }
 
-        // ==========================
-        // 4. 畫面更新 (含版面自動調整)
-        // ==========================
-        function update() {
-            // 文字同步
-            state.pTitle.innerText = state.title.value;
-            state.pSubtitle.innerText = state.subtitle.value;
-            state.pContent.innerText = state.content.value;
-            state.pChartCaption.innerText = state.chartCaption.value;
+        // 內容更新
+        function updateContent() {
+            document.getElementById('preview-title').textContent = document.getElementById('input-title').value;
+            document.getElementById('preview-subtitle').textContent = document.getElementById('input-subtitle').value;
+            document.getElementById('preview-content').textContent = document.getElementById('input-content').value;
+        }
 
-            // 圖表顯示邏輯與版面調整
-            const showChart = state.chartToggle.checked;
+        // 圖表數據與文字更新
+        function updateChartData() {
+            // 抓取文字
+            const label1 = document.getElementById('chart-label-1').value || '項目 1';
+            const label2 = document.getElementById('chart-label-2').value || '項目 2';
             
-            if (showChart) {
-                // A. 顯示圖表
-                state.pChartSection.style.display = 'block';
-                state.pControls.style.opacity = '1';
-                state.pControls.style.pointerEvents = 'auto';
-
-                // B. 回復正常文字排版
-                state.pContent.className = "text-justify text-gray-700 text-base leading-relaxed whitespace-pre-wrap font-sans";
-                // 確保垂直置中或靠上取決於內容長度，這裡保持預設 flex 布局
-                
-                // 更新數據
-                if (myChart) {
-                    myChart.data.labels = [state.chartLabels[0].value, state.chartLabels[1].value];
-                    myChart.data.datasets[0].data = [state.chartData[0].value, state.chartData[1].value];
-                    myChart.update();
-                }
-
-            } else {
-                // A. 隱藏圖表
-                state.pChartSection.style.display = 'none';
-                state.pControls.style.opacity = '0.4';
-                state.pControls.style.pointerEvents = 'none';
-
-                // B. **自動版面調整**：當圖表消失，讓文字更寬鬆、大器
-                // 增加字級 (text-lg)、增加行高 (leading-loose)、增加段落間距
-                state.pContent.className = "text-justify text-gray-700 text-lg leading-loose whitespace-pre-wrap font-sans flex flex-col justify-center h-full";
-            }
+            // 抓取數值
+            const val1 = parseInt(document.getElementById('chart-val-1').value) || 0;
+            const val2 = parseInt(document.getElementById('chart-val-2').value) || 0;
+            
+            // 更新 Chart.js
+            myChart.data.labels = [label1, label2];
+            myChart.data.datasets[0].data = [val1, val2];
+            myChart.update();
         }
 
-        // ==========================
-        // 5. 事件監聽
-        // ==========================
-        document.querySelectorAll('input, textarea').forEach(el => {
-            if (el.type !== 'file') el.addEventListener('input', update);
-        });
-        state.chartToggle.addEventListener('change', update);
+        function toggleChart() {
+            const show = document.getElementById('show-chart').checked;
+            document.getElementById('chart-container').style.display = show ? 'flex' : 'none';
+        }
 
-        // ==========================
-        // 6. 匯出功能
-        // ==========================
-        function downloadPDF() {
-            const element = document.getElementById('document-preview');
-            // 暫時移除 border 以求 PDF 邊緣乾淨
+        // JPG 下載
+        function downloadJPG() {
+            const element = document.getElementById('document-root');
             const originalShadow = element.style.boxShadow;
-            element.style.boxShadow = 'none';
-
-            const opt = {
-                margin: 0,
-                filename: '地政文件_' + new Date().getTime() + '.pdf',
-                image: { type: 'jpeg', quality: 1 },
-                html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
-            html2pdf().set(opt).from(element).save().then(() => {
-                element.style.boxShadow = originalShadow;
-            });
-        }
-
-        function downloadImage() {
-            const element = document.getElementById('document-preview');
+            element.style.boxShadow = 'none'; 
+            
             html2canvas(element, { scale: 2, useCORS: true }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = '地政文件_' + new Date().getTime() + '.jpg';
-                link.href = canvas.toDataURL('image/jpeg');
+                link.download = '地政文件.jpg';
+                link.href = canvas.toDataURL('image/jpeg', 0.9);
                 link.click();
+                element.style.boxShadow = originalShadow;
+            }).catch(e => {
+                alert("圖片匯出受阻，請使用列印功能另存 PDF");
             });
         }
-
-        // 初始化
-        window.addEventListener('DOMContentLoaded', () => {
-            initChart();
-            update();
-        });
-
     </script>
 </body>
 </html>
